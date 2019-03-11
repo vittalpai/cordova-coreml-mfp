@@ -26,6 +26,7 @@ class ImageClassificationViewController: UIViewController {
     @IBOutlet weak var imageView: UIImageView!
     @IBOutlet weak var cameraButton: UIBarButtonItem!
     @IBOutlet weak var classificationLabel: UILabel!
+    static var path:String = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true).first!
     
     // MARK: - Image Classification
     
@@ -43,8 +44,7 @@ class ImageClassificationViewController: UIViewController {
             
             let fileManager = FileManager.default
             let applicationPath = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true).first
-            
-            let itemsArray = fileManager.listFiles(path: applicationPath!);
+            let itemsArray = fileManager.listFiles(path: ImageClassificationViewController.path);
             var filterdItemsArray = [URL]()
             func filterContentForSearchText(searchText: String) {
                 filterdItemsArray = itemsArray.filter { item in
@@ -52,7 +52,7 @@ class ImageClassificationViewController: UIViewController {
                     return item.absoluteString.lowercased().contains(searchText.lowercased())
                 }
             }
-            filterContentForSearchText(searchText: "watson.mlmodel")
+            filterContentForSearchText(searchText: ".mlmodel")
             if(!filterdItemsArray.isEmpty) {
                 let compiledUrl = try MLModel.compileModel(at: filterdItemsArray[0])
                 let mlModel = try MLModel(contentsOf: compiledUrl)
@@ -82,19 +82,23 @@ class ImageClassificationViewController: UIViewController {
         
         let orientation = CGImagePropertyOrientation(rawValue: UInt32(image.imageOrientation.rawValue))
         guard let ciImage = CIImage(image: image) else { fatalError("Unable to create \(CIImage.self) from \(image).") }
+        // Check for model update
+        
         
         DispatchQueue.global(qos: .userInitiated).async {
-            let handler = VNImageRequestHandler(ciImage: ciImage, orientation: orientation!)
-            do {
-                try handler.perform([self.classificationRequest])
-            } catch {
-                /*
-                 This handler catches general image processing errors. The `classificationRequest`'s
-                 completion handler `processClassifications(_:error:)` catches errors specific
-                 to processing that request.
-                 */
-                print("Failed to perform classification.\n\(error.localizedDescription)")
-            }
+            
+            WLClient.sharedInstance()?.downloadModelUpdate(completionHandler: { (status, response) in
+                if(response != nil && status != nil) {
+                    ImageClassificationViewController.path = response!
+                }
+                let handler = VNImageRequestHandler(ciImage: ciImage, orientation: orientation!)
+                do {
+                    try handler.perform([self.classificationRequest])
+                } catch {
+                    print("Failed to perform classification.\n\(error.localizedDescription)")
+                }
+                
+            }, showProgressBar: true)
         }
     }
     
@@ -113,8 +117,6 @@ class ImageClassificationViewController: UIViewController {
                 self.classificationLabel.text = "Nothing recognized."
                 NativePage.showWebView(["Success" : false])
             } else {
-                // Display top classification ranked by confidence in the UI.
-                //self.classificationLabel.text = "Classification: " + classifications[0].identifier
                 self.classificationLabel.text = "Classification: \(classifications[0].identifier) \nConfidence Level : \(classifications[0].confidence*100) %"
                 
                 NativePage.showWebView(["Classification": classifications[0].identifier,
@@ -190,6 +192,3 @@ extension FileManager {
         return urls
     }
 }
-
-
-
