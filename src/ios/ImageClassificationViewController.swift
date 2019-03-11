@@ -37,8 +37,7 @@ class ImageClassificationViewController: UIViewController {
             //  Uncomment this line to use the tools model.
             //let model = try VNCoreMLModel(for: watson_tools().model)
             
-            //  Uncomment this line to use the plants model.
-            var model = try VNCoreMLModel(for: watson().model)
+            //  Uncomment this line to use the plants model
             
             
             
@@ -53,25 +52,16 @@ class ImageClassificationViewController: UIViewController {
                 }
             }
             filterContentForSearchText(searchText: ".mlmodel")
-            if(!filterdItemsArray.isEmpty) {
-                let compiledUrl = try MLModel.compileModel(at: filterdItemsArray[0])
-                let mlModel = try MLModel(contentsOf: compiledUrl)
-                model = try VNCoreMLModel(for: mlModel)
-                let alert = UIAlertController(title: "Alert", message: "Model Loaded from direct update", preferredStyle: UIAlertController.Style.alert)
-                alert.addAction(UIAlertAction(title: "ok", style: UIAlertAction.Style.default, handler: nil))
-                //  self.present(alert, animated: true, completion: nil)
-            } else {
-                let alert = UIAlertController(title: "Alert", message: "Default Model Loaded", preferredStyle: UIAlertController.Style.alert)
-                alert.addAction(UIAlertAction(title: "ok", style: UIAlertAction.Style.default, handler: nil))
-                //  self.present(alert, animated: true, completion: nil)
-            }
             
-            // Create visual recognition request using Core ML model
+            let compiledUrl = try MLModel.compileModel(at: filterdItemsArray[0])
+            let mlModel = try MLModel(contentsOf: compiledUrl)
+            var model = try VNCoreMLModel(for: mlModel)
             let request = VNCoreMLRequest(model: model) { [weak self] request, error in
                 self?.processClassifications(for: request, error: error)
             }
             request.imageCropAndScaleOption = .scaleFit
             return request
+            
         } catch {
             fatalError("Failed to load Vision ML model: \(error)")
         }
@@ -91,13 +81,33 @@ class ImageClassificationViewController: UIViewController {
                 if(response != nil && status != nil) {
                     ImageClassificationViewController.path = response!
                 }
-                let handler = VNImageRequestHandler(ciImage: ciImage, orientation: orientation!)
-                do {
-                    try handler.perform([self.classificationRequest])
-                } catch {
-                    print("Failed to perform classification.\n\(error.localizedDescription)")
+                let fileManager = FileManager.default
+                let applicationPath = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true).first
+                let itemsArray = fileManager.listFiles(path: ImageClassificationViewController.path);
+                var filterdItemsArray = [URL]()
+                func filterContentForSearchText(searchText: String) {
+                    filterdItemsArray = itemsArray.filter { item in
+                        NSLog("Vittal ======" + item.absoluteString)
+                        return item.absoluteString.lowercased().contains(searchText.lowercased())
+                    }
                 }
-                
+                filterContentForSearchText(searchText: ".mlmodel")
+                if(filterdItemsArray.isEmpty) {
+                    let alert = UIAlertController(title: "Alert", message: "Machine learning model not found", preferredStyle: UIAlertController.Style.alert)
+                    alert.addAction(UIAlertAction(title: "ok", style: UIAlertAction.Style.default, handler: {(alert: UIAlertAction!) in NativePage.showWebView(["Success" : false])
+                        
+                    }))
+                    self.present(alert, animated: true, completion: nil)
+                    
+                } else {
+                    let handler = VNImageRequestHandler(ciImage: ciImage, orientation: orientation!)
+                    do {
+                        try handler.perform([self.classificationRequest])
+                    } catch {
+                        print("Failed to perform classification.\n\(error.localizedDescription)")
+                    }
+                    
+                }
             }, showProgressBar: true)
         }
     }
@@ -192,3 +202,6 @@ extension FileManager {
         return urls
     }
 }
+
+
+
