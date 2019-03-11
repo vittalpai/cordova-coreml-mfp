@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<plugin id="cordova-plugin-mfp-coreml" version="1.0.0" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>IBMMobileCoreML</name>
+    <platform name="ios">
+        <resource-file src="src/ios/ImageClassificationViewController.xib" />
+        <source-file src="src/ios/ImageClassificationViewController.swift" />
+        <source-file src="src/ios/watson.mlmodel" />
+        <header-file src="src/ios/IBMMobileCoreML-Bridging-Header.h"/>
+        <dependency id="cordova-plugin-add-swift-support" version="1.7.2"/>
+    </platform>
+</plugin>
