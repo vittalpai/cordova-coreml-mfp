@@ -142,6 +142,8 @@ class ImageClassificationViewController: UIViewController {
     
     // MARK: - Photo Actions
     
+    // MARK: - Photo Actions
+    
     @IBAction func takePicture() {
         // Show options for the source picker only if the camera is available.
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
@@ -164,7 +166,7 @@ class ImageClassificationViewController: UIViewController {
         present(photoSourcePicker, animated: true)
     }
     
-    func presentPhotoPicker(sourceType: UIImagePickerController.SourceType) {
+    func presentPhotoPicker(sourceType: UIImagePickerControllerSourceType) {
         let picker = UIImagePickerController()
         picker.delegate = self
         picker.sourceType = sourceType
@@ -177,17 +179,18 @@ class ImageClassificationViewController: UIViewController {
 extension ImageClassificationViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     // MARK: - Handling Image Picker Selection
     
-    func imagePickerController(_ picker: UIImagePickerController,
-                               didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String: Any]) {
         picker.dismiss(animated: true)
+        
         // We always expect `imagePickerController(:didFinishPickingMediaWithInfo:)` to supply the original image.
-        let image = info[UIImagePickerController.InfoKey.originalImage] as! UIImage
-        imageView.contentMode = UIView.ContentMode.scaleAspectFit
+        let image = info[UIImagePickerControllerOriginalImage] as! UIImage
+        imageView.contentMode = UIViewContentMode.scaleAspectFit
         imageView.image = image
         
         updateClassifications(for: image)
     }
 }
+
 
 extension FileManager {
     func listFiles(path: String) -> [URL] {
@@ -202,6 +205,7 @@ extension FileManager {
         return urls
     }
 }
+
 
 
 
